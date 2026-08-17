@@ -5,10 +5,10 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Hourly Report SCADA Dashboard", layout="wide")
 
-# Updated Google Apps Script Deployment URL
+# Google Apps Script Deployment URL
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzJAe0UgQO6YALceN2CgpsCGgnhF5zCe0_u6vLTyCEQmJNu1kRKpMbAWA8n-w86p4o/exec"
 
-# Styling
+# Dark SCADA Styling
 st.markdown("""
 <style>
     .stApp {
@@ -38,7 +38,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Helper function for gauges
+# Helper function for Plotly gauges
 def build_gauge(title, value, color="#00e676"):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
@@ -60,18 +60,25 @@ def build_gauge(title, value, color="#00e676"):
     )
     return fig
 
-# Initialize Session State
+# Safe Session State Initializer
+default_state = {
+    "line": "Liquid Line 1",
+    "batch": "145730",
+    "item": "SAMBUCOL LIQUID",
+    "status": "Running",
+    "reason": "N/A",
+    "run_rate": 0,
+    "duration_min": 0,
+    "cumulative_units": 0
+}
+
 if 'live_data' not in st.session_state:
-    st.session_state.live_data = {
-        "line": "Liquid Line 1",
-        "batch": "145730",
-        "item": "SAMBUCOL LIQUID",
-        "status": "Running",
-        "reason": "N/A",
-        "run_rate": 0,
-        "duration_min": 0,
-        "cumulative_units": 0
-    }
+    st.session_state.live_data = default_state
+else:
+    # Ensure missing keys from older sessions get filled automatically
+    for key, val in default_state.items():
+        if key not in st.session_state.live_data:
+            st.session_state.live_data[key] = val
 
 st.markdown("<h2 style='text-align: center; color: #38bdf8; font-weight: 800;'>📋 HOURLY PRODUCTION REPORT</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #94a3b8;'>Real-time Line & Status Duration Tracker</p>", unsafe_allow_html=True)
@@ -82,40 +89,46 @@ st.markdown("### ⚡ Live Shift Overview")
 m1, m2, m3, m4 = st.columns(4)
 
 with m1:
+    line_val = st.session_state.live_data.get('line', 'Liquid Line 1')
+    item_val = st.session_state.live_data.get('item', 'SAMBUCOL LIQUID')
+    batch_val = st.session_state.live_data.get('batch', '145730')
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 13px;">PRODUCTION LINE & ITEM</div>
-        <div style="font-size: 18px; font-weight: bold; color: #ffffff; margin-top: 5px;">📍 {st.session_state.live_data['line']}</div>
-        <div style="font-size: 12px; color: #38bdf8;">Item: {st.session_state.live_data['item']}</div>
-        <div style="font-size: 11px; color: #64748b;">Batch: {st.session_state.live_data['batch']}</div>
+        <div style="font-size: 18px; font-weight: bold; color: #ffffff; margin-top: 5px;">📍 {line_val}</div>
+        <div style="font-size: 12px; color: #38bdf8;">Item: {item_val}</div>
+        <div style="font-size: 11px; color: #64748b;">Batch: {batch_val}</div>
     </div>
     """, unsafe_allow_html=True)
 
 with m2:
-    status_curr = st.session_state.live_data['status']
+    status_curr = st.session_state.live_data.get('status', 'Running')
+    reason_val = st.session_state.live_data.get('reason', 'N/A')
     badge_key = status_curr.lower().replace(" ", "")
     badge_cls = f"status-{badge_key}"
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 13px;">CURRENT STATUS</div>
         <div class="status-badge {badge_cls}">{status_curr}</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 5px;">Reason: {st.session_state.live_data['reason']}</div>
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 5px;">Reason: {reason_val}</div>
     </div>
     """, unsafe_allow_html=True)
 
 with m3:
+    dur_val = st.session_state.live_data.get('duration_min', 0)
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 13px;">LAST STATUS DURATION</div>
-        <div style="font-size: 24px; font-weight: bold; color: #ffb300; margin-top: 2px;">⏱️ {st.session_state.live_data['duration_min']} <span style="font-size: 12px;">Mins</span></div>
+        <div style="font-size: 24px; font-weight: bold; color: #ffb300; margin-top: 2px;">⏱️ {dur_val} <span style="font-size: 12px;">Mins</span></div>
     </div>
     """, unsafe_allow_html=True)
 
 with m4:
+    rate_val = st.session_state.live_data.get('run_rate', 0)
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 13px;">LIVE RUN RATE</div>
-        <div style="font-size: 24px; font-weight: bold; color: #00e676; margin-top: 2px;">⚡ {st.session_state.live_data['run_rate']} <span style="font-size: 12px;">Units/Hr</span></div>
+        <div style="font-size: 24px; font-weight: bold; color: #00e676; margin-top: 2px;">⚡ {rate_val} <span style="font-size: 12px;">Units/Hr</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -137,12 +150,16 @@ st.markdown("---")
 st.markdown("### 📝 Submit Hourly Entry")
 
 c1, c2, c3 = st.columns(3)
-line_input = c1.text_input("LINE", value="Liquid Line 1")
-batch_input = c2.text_input("Batch", value="145730")
-item_input = c3.text_input("Item", value="SAMBUCOL LIQUID")
+line_input = c1.text_input("LINE", value=st.session_state.live_data.get('line', 'Liquid Line 1'))
+batch_input = c2.text_input("Batch", value=st.session_state.live_data.get('batch', '145730'))
+item_input = c3.text_input("Item", value=st.session_state.live_data.get('item', 'SAMBUCOL LIQUID'))
 
 c4, c5 = st.columns(2)
-status_input = c4.selectbox("STATUS", ["Running", "Downtime", "Change Over", "Startup"])
+status_options = ["Running", "Downtime", "Change Over", "Startup"]
+current_st = st.session_state.live_data.get('status', 'Running')
+st_index = status_options.index(current_st) if current_st in status_options else 0
+
+status_input = c4.selectbox("STATUS", status_options, index=st_index)
 
 reason_input = "N/A"
 units_input = 0
