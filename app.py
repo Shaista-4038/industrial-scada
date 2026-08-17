@@ -95,7 +95,7 @@ def render_metallic_tank(color, fill_pct):
 st.markdown("<h2 style='text-align: center; color: #ffffff; font-weight: 800; letter-spacing: 1px;'>🏭 INDUSTRIAL SCADA & CIP CONTROL CENTER</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 14px;'>Real-time Process Monitoring • Live Google Sheets Telemetry</p>", unsafe_allow_html=True)
 
-# Session State Initialization
+# Session State Initialization (Safe Fallback)
 if 'tank_status' not in st.session_state:
     st.session_state.tank_status = {
         f"Tank {i}": {"status": "Idle", "level": 2200, "fill": 15} for i in range(1, 11)
@@ -125,19 +125,21 @@ status_colors = {
 
 for idx, (tank_name, details) in enumerate(st.session_state.tank_status.items()):
     with cols[idx]:
-        status = details["status"]
+        status = details.get("status", "Idle")
         color = status_colors.get(status, "#ff5252")
         badge_type = "cip" if status == "CIP / Cleaning" else status.lower()
+        fill_val = details.get("fill", 15)
+        level_val = details.get("level", 2200)
         
-        tank_svg = render_metallic_tank(color, details["fill"])
+        tank_svg = render_metallic_tank(color, fill_val)
         
         st.markdown(f"""
         <div class="tank-card">
             <div style="font-weight: 600; font-size: 13px; color: #f8fafc;">{tank_name}</div>
             {tank_svg}
             <span class="badge badge-{badge_type}">{status.split(' ')[0]}</span>
-            <div style="font-weight: bold; font-size: 11px; color: #ffffff; margin-top: 4px;">{details['fill']}%</div>
-            <div style="font-size: 10px; color: #64748b;">{details['level']} L</div>
+            <div style="font-weight: bold; font-size: 11px; color: #ffffff; margin-top: 4px;">{fill_val}%</div>
+            <div style="font-size: 10px; color: #64748b;">{level_val} L</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -185,7 +187,7 @@ st.markdown("#### Auto-Sync Operational Control Panel")
 c1, c2, c3, c4 = st.columns(4)
 
 selected_tank = c1.selectbox("Select Tank", list(st.session_state.tank_status.keys()))
-current_status = st.session_state.tank_status[selected_tank]["status"]
+current_status = st.session_state.tank_status[selected_tank].get("status", "Idle")
 status_list = ["Mixing", "CIP / Cleaning", "Holding", "Idle", "FAULT"]
 
 selected_index = status_list.index(current_status) if current_status in status_list else 3
@@ -196,10 +198,11 @@ duration = c4.text_input("Shift Notes", "12 Hours Shift")
 # AUTO-LOGIC: Instant sync without explicit button click
 current_state = (selected_tank, operation, operator, duration)
 
-if st.session_state.tank_status[selected_tank]["status"] != operation or st.session_state.last_logged != current_state:
-    # Update Tank State
+if st.session_state.tank_status[selected_tank].get("status") != operation or st.session_state.last_logged != current_state:
+    # Update Tank State safely
+    new_fill = 75 if operation in ["Mixing", "Holding"] else (40 if operation == "CIP / Cleaning" else 15)
     st.session_state.tank_status[selected_tank]["status"] = operation
-    st.session_state.tank_status[selected_tank]["fill"] = 75 if operation in ["Mixing", "Holding"] else (40 if operation == "CIP / Cleaning" else 15)
+    st.session_state.tank_status[selected_tank]["fill"] = new_fill
     st.session_state.last_logged = current_state
     
     # Telemetry Payload
