@@ -38,7 +38,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Helper function for Plotly gauges
 def build_gauge(title, value, color="#00e676"):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
@@ -60,7 +59,6 @@ def build_gauge(title, value, color="#00e676"):
     )
     return fig
 
-# Safe Session State Initializer
 default_state = {
     "line": "Liquid Line 1",
     "batch": "145730",
@@ -84,7 +82,6 @@ st.markdown("<h2 style='text-align: center; color: #38bdf8; font-weight: 800;'>�
 st.markdown("<p style='text-align: center; color: #94a3b8;'>Real-Time Dual Run-Rate Analytics & Status Tracker</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# --- LIVE METRICS OVERVIEW ---
 st.markdown("### ⚡ Shift Live Telemetry")
 m1, m2, m3, m4, m5 = st.columns(5)
 
@@ -145,7 +142,6 @@ with m5:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# --- GAUGES SECTION ---
 st.markdown("### 📊 OEE Indicators")
 g1, g2, g3 = st.columns(3)
 with g1:
@@ -157,7 +153,6 @@ with g3:
 
 st.markdown("---")
 
-# --- FORM ENTRY SECTION ---
 st.markdown("### 📝 Operator Entry Panel")
 
 c1, c2, c3 = st.columns(3)
@@ -169,7 +164,6 @@ c4, c5, c6 = st.columns(3)
 status_options = ["Running", "Downtime", "Change Over", "Startup"]
 status_input = c4.selectbox("STATUS", status_options)
 
-# 24-Hour Time Selection for Operator
 time_input = c5.time_input("Select Time (24-hr format)", datetime.time(8, 0))
 formatted_time = time_input.strftime("%H:%M")
 
@@ -181,7 +175,6 @@ if status_input in ["Downtime", "Change Over"]:
 else:
     units_input = c6.number_input("Cumulative Units Done", min_value=0, value=1000, step=50)
 
-# Enter / Submit Button
 if st.button("Submit Hourly Log (ENTER)", use_container_width=True):
     payload = {
         "line": line_input,
