@@ -5,10 +5,9 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Hourly Production SCADA Dashboard", layout="wide")
 
-# Updated Google Apps Script Deployment URL
+# Active Web App Deployment URL
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzJAe0UgQO6YALceN2CgpsCGgnhF5zCe0_u6vLTyCEQmJNu1kRKpMbAWA8n-w86p4o/exec"
 
-# Dark SCADA UI Styling
 st.markdown("""
 <style>
     .stApp {
@@ -42,8 +41,8 @@ def build_gauge(title, value, color="#00e676"):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=value,
-        title={'text': title, 'font': {'size': 15, 'color': '#94a3b8'}},
-        number={'font': {'color': '#ffffff', 'size': 24}, 'suffix': "%"},
+        title={'text': title, 'font': {'size': 16, 'color': '#ffffff'}},
+        number={'font': {'color': '#ffffff', 'size': 26}, 'suffix': "%"},
         gauge={
             'axis': {'range': [0, 100], 'tickcolor': "#ffffff"},
             'bar': {'color': color},
@@ -54,7 +53,7 @@ def build_gauge(title, value, color="#00e676"):
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        height=190,
+        height=200,
         margin=dict(l=20, r=20, t=30, b=20)
     )
     return fig
@@ -68,7 +67,10 @@ default_state = {
     "selected_time": "08:00",
     "current_run_rate": 0,
     "avg_run_rate": 0,
-    "cumulative_units": 0
+    "cumulative_units": 0,
+    "avail_oee": 92,
+    "perf_oee": 88,
+    "quality_yield": 98
 }
 
 if 'live_data' not in st.session_state:
@@ -78,11 +80,21 @@ else:
         if k not in st.session_state.live_data:
             st.session_state.live_data[k] = v
 
-st.markdown("<h2 style='text-align: center; color: #38bdf8; font-weight: 800;'>🏭 HOURLY PRODUCTION DASHBOARD</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8;'>Real-Time Dual Run-Rate Analytics & Status Tracker</p>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #38bdf8; font-weight: 800;'>📊 Performance Indicators</h2>", unsafe_allow_html=True)
+
+# 1. Dynamic OEE Gauges
+g1, g2, g3 = st.columns(3)
+with g1:
+    st.plotly_chart(build_gauge("Availability OEE", st.session_state.live_data.get('avail_oee', 92), "#00e676"), key="gauge_avail")
+with g2:
+    st.plotly_chart(build_gauge("Performance OEE", st.session_state.live_data.get('perf_oee', 88), "#38bdf8"), key="gauge_perf")
+with g3:
+    st.plotly_chart(build_gauge("Quality Yield", st.session_state.live_data.get('quality_yield', 98), "#ffb300"), key="gauge_qual")
+
 st.markdown("---")
 
-st.markdown("### ⚡ Shift Live Telemetry")
+# 2. Shift Metrics Display
+st.markdown("### ⚡ Live Shift Analytics")
 m1, m2, m3, m4, m5 = st.columns(5)
 
 line_val = st.session_state.live_data.get('line', 'Liquid Line 1')
@@ -98,7 +110,7 @@ with m1:
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 12px;">LINE & BATCH</div>
-        <div style="font-size: 16px; font-weight: bold; color: #ffffff; margin-top: 4px;">📍 {line_val}</div>
+        <div style="font-size: 15px; font-weight: bold; color: #ffffff; margin-top: 4px;">📍 {line_val}</div>
         <div style="font-size: 11px; color: #38bdf8;">Item: {item_val}</div>
         <div style="font-size: 10px; color: #64748b;">Batch: {batch_val}</div>
     </div>
@@ -108,9 +120,9 @@ with m2:
     badge_key = status_curr.lower().replace(" ", "")
     st.markdown(f"""
     <div class="metric-card">
-        <div style="color: #94a3b8; font-size: 12px;">CURRENT STATUS</div>
+        <div style="color: #94a3b8; font-size: 12px;">STATUS</div>
         <div class="status-badge status-{badge_key}">{status_curr}</div>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Logged Time: {time_val}</div>
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Time: {time_val}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -118,8 +130,7 @@ with m3:
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 12px;">CURRENT RUN RATE</div>
-        <div style="font-size: 22px; font-weight: bold; color: #00e676; margin-top: 2px;">⚡ {curr_rate} <span style="font-size: 11px;">u/hr</span></div>
-        <div style="font-size: 10px; color: #64748b;">(Last vs 2nd Last Entry)</div>
+        <div style="font-size: 20px; font-weight: bold; color: #00e676; margin-top: 2px;">⚡ {curr_rate} <span style="font-size: 11px;">u/hr</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -127,8 +138,7 @@ with m4:
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 12px;">AVERAGE RUN RATE</div>
-        <div style="font-size: 22px; font-weight: bold; color: #38bdf8; margin-top: 2px;">📈 {avg_rate} <span style="font-size: 11px;">u/hr</span></div>
-        <div style="font-size: 10px; color: #64748b;">(Since Startup Timestamp)</div>
+        <div style="font-size: 20px; font-weight: bold; color: #38bdf8; margin-top: 2px;">📈 {avg_rate} <span style="font-size: 11px;">u/hr</span></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -136,46 +146,36 @@ with m5:
     st.markdown(f"""
     <div class="metric-card">
         <div style="color: #94a3b8; font-size: 12px;">CUMULATIVE UNITS</div>
-        <div style="font-size: 22px; font-weight: bold; color: #ffb300; margin-top: 2px;">📦 {cum_units}</div>
+        <div style="font-size: 20px; font-weight: bold; color: #ffb300; margin-top: 2px;">📦 {cum_units}</div>
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown("### 📊 OEE Indicators")
-g1, g2, g3 = st.columns(3)
-with g1:
-    st.plotly_chart(build_gauge("Availability OEE", 92, "#00e676"), key="gauge_avail")
-with g2:
-    st.plotly_chart(build_gauge("Performance OEE", 88, "#38bdf8"), key="gauge_perf")
-with g3:
-    st.plotly_chart(build_gauge("Quality Yield", 98, "#ffb300"), key="gauge_qual")
-
 st.markdown("---")
 
-st.markdown("### 📝 Operator Entry Panel")
+# 3. Submit Hourly Entry Section
+st.markdown("### 📝 Submit Hourly Entry")
 
-c1, c2, c3 = st.columns(3)
-line_input = c1.text_input("LINE", value=st.session_state.live_data.get('line', 'Liquid Line 1'))
-batch_input = c2.text_input("Batch", value=st.session_state.live_data.get('batch', '145730'))
-item_input = c3.text_input("Item", value=st.session_state.live_data.get('item', 'SAMBUCOL LIQUID'))
+line_input = st.text_input("LINE", value=st.session_state.live_data.get('line', 'Liquid Line 1'))
+batch_input = st.text_input("Batch", value=st.session_state.live_data.get('batch', '145730'))
+item_input = st.text_input("Item", value=st.session_state.live_data.get('item', 'SAMBUCOL LIQUID'))
 
-c4, c5, c6 = st.columns(3)
 status_options = ["Running", "Downtime", "Change Over", "Startup"]
-status_input = c4.selectbox("STATUS", status_options)
+status_input = st.selectbox("STATUS", status_options)
 
-time_input = c5.time_input("Select Time (24-hr format)", datetime.time(8, 0))
-formatted_time = time_input.strftime("%H:%M")
+c_time, c_units = st.columns(2)
+with c_time:
+    time_input = st.time_input("Select Time (24-hr format)", datetime.time(8, 0))
+    formatted_time = time_input.strftime("%H:%M")
+
+with c_units:
+    units_input = st.number_input("Cumulative Units (For Running/Startup Calculation)", min_value=0, value=1000, step=50)
 
 reason_input = "N/A"
-units_input = 0
-
 if status_input in ["Downtime", "Change Over"]:
-    reason_input = c6.text_input("Reason (Required)", value="Maintenance Check")
-else:
-    units_input = c6.number_input("Cumulative Units Done", min_value=0, value=1000, step=50)
+    reason_input = st.text_input("Reason (Required for Downtime/Change Over)", value="Maintenance Check")
 
-if st.button("Submit Hourly Log (ENTER)", use_container_width=True):
+if st.button("Submit Hourly Log", use_container_width=True):
     payload = {
         "line": line_input,
         "batch": batch_input,
@@ -200,13 +200,16 @@ if st.button("Submit Hourly Log (ENTER)", use_container_width=True):
                     "selected_time": formatted_time,
                     "current_run_rate": data.get("current_run_rate", 0),
                     "avg_run_rate": data.get("avg_run_rate", 0),
-                    "cumulative_units": units_input
+                    "cumulative_units": units_input,
+                    "avail_oee": data.get("avail_oee", 92),
+                    "perf_oee": data.get("perf_oee", 88),
+                    "quality_yield": data.get("quality_yield", 98)
                 }
-                st.success(f"Entry Logged! Current Run Rate: {data.get('current_run_rate')} u/hr | Avg Run Rate: {data.get('avg_run_rate')} u/hr")
+                st.success(f"Log Submitted! Current Run Rate: {data.get('current_run_rate')} u/hr | Avg Run Rate: {data.get('avg_run_rate')} u/hr")
                 st.rerun()
             else:
                 st.error(f"Backend Error: {data.get('message')}")
         else:
             st.error("Failed to connect to Google Apps Script.")
     except Exception as e:
-        st.error(f"Network Connection Error: {e}")
+        st.error(f"Network Error: {e}")
