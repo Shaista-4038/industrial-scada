@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Manufacturing Dashboard", layout="wide")
 
-# Updated Web App URL
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzJAe0UgQO6YALceN2CgpsCGgnhF5zCe0_u6vLTyCEQmJNu1kRKpMbAWA8n-w86p4o/exec"
 
 st.markdown("""
@@ -75,7 +74,8 @@ for line_name in FACTORY_LINES:
             }
         ))
         fig.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=110, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig, use_container_width=True)
+        # Added unique key parameter here to prevent StreamlitDuplicateElementId error
+        st.plotly_chart(fig, use_container_width=True, key=f"gauge_{line_name}")
 
     with st.expander(f"⚙️ Task Assigner & Actions ({line_name})"):
         st.markdown("**1. Current & Next Batch Setup**")
