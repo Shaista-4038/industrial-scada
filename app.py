@@ -110,10 +110,10 @@ for line_name in FACTORY_LINES:
         m1.metric("Target Units", f"{d['target']:,}")
         m2.metric("Completed Units", f"{d['done']:,}")
         m3.metric("Units Left", f"{max(0, d['target'] - d['done']):,}")
-        st.progress(pct / 100.0)
+        st.progress(pct / 100.0, key=f"prog_{line_name}") # KEY ADDED
 
     with col2:
-        # Live Efficiency Gauge
+        # Live Efficiency Gauge - KEY ADDED TO FIX DUPLICATE ERROR
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=round(pct, 1),
@@ -126,7 +126,7 @@ for line_name in FACTORY_LINES:
             }
         ))
         fig.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=120, paper_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, key=f"gauge_{line_name}") # <-- FIX HERE
 
     # EXPANDER FOR CONTROLS
     with st.expander(f"⚙️ Task Assigner & Actions ({line_name})"):
